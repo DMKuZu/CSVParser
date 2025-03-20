@@ -16,6 +16,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -131,12 +132,13 @@ public class CSVProcessor {
             voucherData.add(voucher);
         }
 
-        // Create a thread pool with 313 threads
-        ExecutorService executor = Executors.newFixedThreadPool(313);
+        // Use a smaller thread pool size (e.g., based on the number of CPU cores)
+        int threadPoolSize = Runtime.getRuntime().availableProcessors();
+        ExecutorService executor = Executors.newFixedThreadPool(threadPoolSize);
 
         // Divide the workload into chunks
         int totalVouchers = voucherData.size();
-        int chunkSize = (int) Math.ceil((double) totalVouchers / 313); // Size of each chunk
+        int chunkSize = (int) Math.ceil((double) totalVouchers / threadPoolSize); // Size of each chunk
         int startIndex = 0;
 
         // Generate a unique output path
@@ -144,29 +146,35 @@ public class CSVProcessor {
         String outputPath = generateUniqueOutputPath(basePath);
 
         // Create a list to hold temporary PDF files
-        List<File> tempFiles = new ArrayList<>();
+        List<File> tempFiles = Collections.synchronizedList(new ArrayList<>());
 
-        for (int i = 0; i < 313; i++) {
+        for (int i = 0; i < threadPoolSize; i++) {
             int endIndex = Math.min(startIndex + chunkSize, totalVouchers);
             List<String> sublist = voucherData.subList(startIndex, endIndex);
 
-            if (!sublist.isEmpty()) {
-                // Create a temporary file for this chunk
-                File tempFile = File.createTempFile("voucher_chunk_" + i, ".pdf");
-                tempFiles.add(tempFile);
+            // Create a temporary file for this chunk
+            File tempFile = File.createTempFile("voucher_chunk_" + i, ".pdf");
+            tempFiles.add(tempFile);
 
-                executor.submit(() -> {
-                    ITextRenderer renderer = new ITextRenderer();
-                    generateVoucherPage(renderer, sublist);
+            executor.submit(() -> {
+                ITextRenderer renderer = new ITextRenderer();
+                generateVoucherPage(renderer, sublist);
 
-                    try (OutputStream outputStream = new FileOutputStream(tempFile)) {
-                        renderer.createPDF(outputStream);
-                        outputStream.flush(); // Ensure all data is written
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                });
-            }
+                try (OutputStream outputStream = new FileOutputStream(tempFile)) {
+                    renderer.createPDF(outputStream);
+                    outputStream.flush(); // Ensure all data is written
+                    System.out.println("Generated temporary file: " + tempFile.getAbsolutePath());
+                    /*if(tempFile.length() == 0) {
+                        System.err.println("Empty Generated temporary file: " + tempFile.getAbsolutePath());
+                        tempFile.delete();
+                    }*/
+                } catch (Exception e) {
+                    System.err.println("Failed to generate PDF for chunk: " + tempFile.getAbsolutePath());
+                    e.printStackTrace();
+                    // Delete the corrupted file
+                    tempFile.delete();
+                }
+            });
 
             startIndex = endIndex;
         }
@@ -182,9 +190,10 @@ public class CSVProcessor {
 
         // Clean up temporary files
         for (File tempFile : tempFiles) {
-            tempFile.delete();
+            if (tempFile.exists()) {
+                tempFile.delete();
+            }
         }
-
         parser.close();
     }
 
@@ -218,7 +227,7 @@ public class CSVProcessor {
     private static void mergePDFs(List<File> tempFiles, String outputPath) {
         try (PDDocument finalDocument = new PDDocument()) {
             for (File tempFile : tempFiles) {
-                if (tempFile.length() > 0) { // Check if the file is not empty
+                if (tempFile.exists() && tempFile.length() > 0) { // Check if the file exists and is not empty
                     try (PDDocument tempDocument = PDDocument.load(tempFile)) {
                         for (PDPage page : tempDocument.getDocumentCatalog().getPages()) {
                             finalDocument.addPage(page);
@@ -228,10 +237,12 @@ public class CSVProcessor {
                         e.printStackTrace();
                     }
                 } else {
-                    System.err.println("Skipping empty temporary file: " + tempFile.getAbsolutePath());
+                    if(!tempFile.exists())System.err.println("Missing temporary file: " + tempFile.getAbsolutePath());
+                    if(tempFile.length() == 0) System.err.println("Empty temporary file: " + tempFile.getAbsolutePath());
                 }
             }
             finalDocument.save(outputPath); // Save the final document
+            System.out.println("Final PDF saved to: " + outputPath);
         } catch (IOException e) {
             e.printStackTrace();
         }
