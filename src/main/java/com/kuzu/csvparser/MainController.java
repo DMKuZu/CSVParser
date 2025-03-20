@@ -1,12 +1,10 @@
 package com.kuzu.csvparser;
 
 import javafx.fxml.FXML;
-import javafx.scene.control.Button;
-import javafx.scene.control.ComboBox;
-import javafx.scene.control.TextArea;
-import javafx.scene.control.TextField;
+import javafx.scene.control.*;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
+import javafx.util.StringConverter;
 
 import java.io.File;
 import java.io.IOException;
@@ -20,15 +18,33 @@ public class MainController {
     public TextField tfSpeed;
     public Button btnChooseFile;
     public TextArea taCSVfile;
-    public ComboBox<Integer> cbVouchersPerPage;
+    public Slider sliderScale;
 
     private File selectedFile;
 
     @FXML
     public void initialize() {
-        // Populate the ComboBox with values
-        cbVouchersPerPage.getItems().addAll(9, 12, 24, 48, 96);
-        cbVouchersPerPage.getSelectionModel().selectFirst(); // Select the first value by default
+
+        // Add a label to show percentage
+        sliderScale.setLabelFormatter(new StringConverter<Double>() {
+            @Override
+            public String toString(Double value) {
+                return String.format("%.0f%%", value);
+            }
+
+            @Override
+            public Double fromString(String string) {
+                try {
+                    return Double.parseDouble(string.replace("%", ""))/100.0;
+                } catch (NumberFormatException ignored) { return 1.5;}
+            }
+        });
+
+        // Update FXML TextArea with current percentage when slider moves
+       /* sliderScale.valueProperty().addListener((obs, oldVal, newVal) -> {
+            int percentage = (int) (newVal.doubleValue() * 100);
+            taCSVfile.setText(String.format("Scale: %d%%", percentage));
+        });*/
 
         // Set up the file chooser button
         btnChooseFile.setOnAction(event -> {
@@ -60,7 +76,7 @@ public class MainController {
                 String uptime = tfUptime.getText();
                 String validity = tfValidity.getText();
                 String speed = tfSpeed.getText();
-                int vouchersPerPage = cbVouchersPerPage.getValue();
+                double voucherScale = sliderScale.getValue()/100;
 
                 // Check if a file is selected
                 if (selectedFile == null) {
@@ -69,8 +85,9 @@ public class MainController {
                 }
 
                 // Process the CSV file and generate the PDF
-                CSVProcessor.processCSV(selectedFile.getAbsolutePath(), price, name, uptime, validity, speed, vouchersPerPage);
-                taCSVfile.setText("Vouchers generated successfully!");
+                CSVProcessor.processCSV(selectedFile.getAbsolutePath(), price, name, uptime, validity, speed, voucherScale);
+                taCSVfile.setText("Vouchers located at: " + selectedFile.getParent());
+                System.out.println(price + " " + name + " " + uptime + " " + validity + " " + speed + " " + voucherScale);
             } catch (NumberFormatException e) {
                 taCSVfile.setText("Invalid input. Please check your values.");
             } catch (IOException e) {

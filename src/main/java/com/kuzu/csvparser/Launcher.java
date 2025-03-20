@@ -11,7 +11,7 @@ public class Launcher extends Application {
     @Override
     public void start(Stage stage) throws IOException {
         FXMLLoader fxmlLoader = new FXMLLoader(Launcher.class.getResource("GUI-view.fxml"));
-        Scene scene = new Scene(fxmlLoader.load(), 1000, 250);
+        Scene scene = new Scene(fxmlLoader.load(), 600, 400);
         stage.setResizable(false);
         stage.setTitle("CSVParser");
         stage.setScene(scene);
