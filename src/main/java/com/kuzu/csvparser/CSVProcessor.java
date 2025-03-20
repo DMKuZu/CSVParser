@@ -3,6 +3,8 @@ package com.kuzu.csvparser;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDPage;
 import org.xhtmlrenderer.pdf.ITextRenderer;
 
 import java.io.File;
@@ -141,13 +143,31 @@ public class CSVProcessor {
         String basePath = csvFilePath.replace(".csv", "_vouchers");
         String outputPath = generateUniqueOutputPath(basePath);
 
-        // Create a PDF document
-        ITextRenderer renderer = new ITextRenderer();
+        // Create a list to hold temporary PDF files
+        List<File> tempFiles = new ArrayList<>();
 
         for (int i = 0; i < 313; i++) {
             int endIndex = Math.min(startIndex + chunkSize, totalVouchers);
             List<String> sublist = voucherData.subList(startIndex, endIndex);
-            executor.submit(() -> generateVoucherPage(renderer, sublist));
+
+            if (!sublist.isEmpty()) {
+                // Create a temporary file for this chunk
+                File tempFile = File.createTempFile("voucher_chunk_" + i, ".pdf");
+                tempFiles.add(tempFile);
+
+                executor.submit(() -> {
+                    ITextRenderer renderer = new ITextRenderer();
+                    generateVoucherPage(renderer, sublist);
+
+                    try (OutputStream outputStream = new FileOutputStream(tempFile)) {
+                        renderer.createPDF(outputStream);
+                        outputStream.flush(); // Ensure all data is written
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                });
+            }
+
             startIndex = endIndex;
         }
 
@@ -157,14 +177,15 @@ public class CSVProcessor {
             // Wait for all threads to finish
         }
 
-        // Save the PDF
-        try (OutputStream outputStream = Files.newOutputStream(Paths.get(outputPath))) {
-            renderer.createPDF(outputStream);
-        } catch (Exception e) {
-            e.printStackTrace();
-        } finally {
-            parser.close();
+        // Merge the temporary PDF files into a single PDF
+        mergePDFs(tempFiles, outputPath);
+
+        // Clean up temporary files
+        for (File tempFile : tempFiles) {
+            tempFile.delete();
         }
+
+        parser.close();
     }
 
     private static void generateVoucherPage(ITextRenderer renderer, List<String> voucherData) {
@@ -174,8 +195,6 @@ public class CSVProcessor {
             htmlContent.append(voucher);
         }
         htmlContent.append("</body></html>");
-
-        System.out.println("HTML Content:\n" + htmlContent);
 
         renderer.setDocumentFromString(htmlContent.toString());
         renderer.layout();
@@ -194,5 +213,27 @@ public class CSVProcessor {
         }
 
         return outputPath;
+    }
+
+    private static void mergePDFs(List<File> tempFiles, String outputPath) {
+        try (PDDocument finalDocument = new PDDocument()) {
+            for (File tempFile : tempFiles) {
+                if (tempFile.length() > 0) { // Check if the file is not empty
+                    try (PDDocument tempDocument = PDDocument.load(tempFile)) {
+                        for (PDPage page : tempDocument.getDocumentCatalog().getPages()) {
+                            finalDocument.addPage(page);
+                        }
+                    } catch (IOException e) {
+                        System.err.println("Failed to load temporary PDF file: " + tempFile.getAbsolutePath());
+                        e.printStackTrace();
+                    }
+                } else {
+                    System.err.println("Skipping empty temporary file: " + tempFile.getAbsolutePath());
+                }
+            }
+            finalDocument.save(outputPath); // Save the final document
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }
