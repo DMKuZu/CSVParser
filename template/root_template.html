@@ -9,91 +9,65 @@
             display: inline-block;
             height: 190px;
             width: 299px;
-            background-repeat: no-repeat;
-            background-image: url('pink.jpg');
-            background-position: center center;
-            border-width: 1px;
-            border-style: dashed;
-            border-color: #999999;
+            position: relative;
+            border: 1px dashed #999;
             margin-top: 3px;
+            overflow: hidden;
+        }
 
+        .background-image {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: -1;
         }
 
         body {
-            margin: 0px;
-            padding: 0px;
+            margin: 0;
+            padding: 0;
         }
 
         .kiri {
             float: left;
-            margin-top: 51px;
-            margin-left: 35px;
-            font-family: "Courier New";
+            margin: 51px 0 0 35px;
+            font-family: "Courier New", monospace;
             font-weight: bold;
         }
 
         .kanan {
             float: right;
             width: 103px;
-            margin-top: 20px;
-            margin-right: 40px;
+            margin: 20px 40px 0 0;
         }
 
-        .form1 {
-            font-size: 30px;
-            margin-top: 75px;
-            margin-left: 35px;
-        }
-
-        .form2 {
-            font-size: 28px;
-            margin-top: 25px;
-            margin-left: 35px;
-        }
-
+        .form1 { font-size: 30px; margin: 75px 0 0 35px; }
+        .form2 { font-size: 28px; margin: 25px 0 0 35px; }
         .form3 {
             transform: rotate(-90deg);
             font-size: 30px;
-            margin-top: -105px;
-            margin-left: -268px;
+            margin: -105px 0 0 -268px;
             text-align: center;
-            font-family: "Century Gothic";
-            color: White;
+            font-family: "Century Gothic", sans-serif;
+            color: white;
         }
-
         .form4 {
             font-size: 21px;
-            margin-top: -102px;
-            margin-left: -7px;
+            margin: -102px 0 0 -7px;
             text-align: center;
-            font-family: "Century Gothic";
+            font-family: "Century Gothic", sans-serif;
             font-weight: bold;
         }
-
-        .form5 {
+        .form5, .form6, .form7 {
             font-size: 12px;
-            margin-top: -1px;
-            margin-left: -136px;
             text-align: center;
-            font-family: "Century Gothic";
+            font-family: "Century Gothic", sans-serif;
         }
-
-        .form6 {
-            font-size: 12px;
-            margin-top: 1px;
-            margin-left: -129px;
-            text-align: center;
-            font-family: "Century Gothic";
-        }
-
-        .form7 {
-            font-size: 12px;
-            margin-top: -31px;
-            margin-left: 95px;
-            text-align: center;
-            font-family: "Century Gothic";
-
-        }
+        .form5 { margin: -1px 0 0 -136px; }
+        .form6 { margin: 1px 0 0 -129px; }
+        .form7 { margin: -31px 0 0 95px; }
     </style>
 </head>
 
