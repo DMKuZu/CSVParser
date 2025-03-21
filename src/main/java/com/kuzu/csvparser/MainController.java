@@ -92,6 +92,8 @@ public class MainController {
                 taCSVfile.setText("Invalid input. Please check your values.");
             } catch (IOException e) {
                 taCSVfile.setText("Error generating vouchers: " + e.getMessage());
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
             }
         });
     }
