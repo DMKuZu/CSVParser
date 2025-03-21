@@ -5,81 +5,94 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Vouchers</title>
     <style type="text/css">
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: "Century Gothic", sans-serif;
-        }
-
-        .card {
+        .box {
             display: inline-block;
-            width: 299px;
             height: 190px;
-            background-image: url('pink.jpg');
+            width: 299px;
             background-repeat: no-repeat;
+            background-image: url('pink.jpg');
             background-position: center center;
-            border: 1px dashed #999;
+            border-width: 1px;
+            border-style: dashed;
+            border-color: #999999;
             margin-top: 3px;
-            position: relative;
+
         }
 
-        .card-top-text,
-        .card-username,
-        .card-price,
-        .card-title,
-        .card-uptime,
-        .card-validity,
-        .card-speed {
-            position: absolute;
-            text-align: center;
+        body {
+            margin: 0px;
+            padding: 0px;
         }
 
-        .card-top-text {
-            font-size: 30px;
-            top: 75px;
-            left: 35px;
-        }
-
-        .card-username {
-            font-size: 30px;
-            top: 110px;
-            left: 35px;
-        }
-
-        .card-price {
-            font-size: 30px;
-            transform: rotate(-90deg);
-            top: 50%;
-            left: -135px;
-            color: white;
-        }
-
-        .card-title {
-            font-size: 21px;
+        .kiri {
+            float: left;
+            margin-top: 51px;
+            margin-left: 35px;
+            font-family: "Courier New";
             font-weight: bold;
-            top: 10px;
-            left: 50%;
-            transform: translateX(-50%);
         }
 
-        .card-uptime,
-        .card-validity,
-        .card-speed {
+        .kanan {
+            float: right;
+            width: 103px;
+            margin-top: 20px;
+            margin-right: 40px;
+        }
+
+        .form1 {
+            font-size: 30px;
+            margin-top: 75px;
+            margin-left: 35px;
+        }
+
+        .form2 {
+            font-size: 28px;
+            margin-top: 25px;
+            margin-left: 35px;
+        }
+
+        .form3 {
+            transform: rotate(-90deg);
+            font-size: 30px;
+            margin-top: -105px;
+            margin-left: -268px;
+            text-align: center;
+            font-family: "Century Gothic";
+            color: White;
+        }
+
+        .form4 {
+            font-size: 21px;
+            margin-top: -102px;
+            margin-left: -7px;
+            text-align: center;
+            font-family: "Century Gothic";
+            font-weight: bold;
+        }
+
+        .form5 {
             font-size: 12px;
-            left: 50%;
-            transform: translateX(-50%);
+            margin-top: -1px;
+            margin-left: -136px;
+            text-align: center;
+            font-family: "Century Gothic";
         }
 
-        .card-uptime {
-            top: 130px;
+        .form6 {
+            font-size: 12px;
+            margin-top: 1px;
+            margin-left: -129px;
+            text-align: center;
+            font-family: "Century Gothic";
         }
 
-        .card-validity {
-            top: 145px;
-        }
+        .form7 {
+            font-size: 12px;
+            margin-top: -31px;
+            margin-left: 95px;
+            text-align: center;
+            font-family: "Century Gothic";
 
-        .card-speed {
-            top: 160px;
         }
     </style>
 </head>

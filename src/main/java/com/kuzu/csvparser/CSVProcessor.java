@@ -63,9 +63,10 @@ public class CSVProcessor {
         StringBuilder vouchersContent = new StringBuilder();
         for (CSVRecord record : records) {
             // Get the raw record value for the code
-            String rawCode = "";
+            String parsedCode = "";
             if (record.size() > 0) {
-                rawCode = record.get(0);
+                String code = record.get(0); // base code
+                parsedCode = code.substring(code.indexOf(";\"")+2, code.indexOf("\";"));
             }
 
             // Use the template with placeholders
@@ -75,7 +76,7 @@ public class CSVProcessor {
                     .replace("${uptime}", uptime)
                     .replace("${validity}", validity)
                     .replace("${speed}", speed)
-                    .replace("${code}", rawCode);
+                    .replace("${code}", parsedCode);
 
             vouchersContent.append(voucherHtml);
         }
