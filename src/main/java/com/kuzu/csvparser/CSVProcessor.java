@@ -4,6 +4,7 @@ import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
 
+import java.awt.Desktop;
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -41,7 +42,7 @@ public class CSVProcessor {
 
         // Generate unique output path for HTML file
         String basePath = csvFilePath.replace(".csv", "_vouchers");
-        String outputPath = generateUniqueOutputPath(basePath, "html");
+        String outputPath = generateUniqueOutputPath(basePath);
 
         // Load HTML template from the template folder within the application
         String templatePath = findTemplatePath("root_template.html");
@@ -90,6 +91,9 @@ public class CSVProcessor {
         }
 
         System.out.println("HTML file with vouchers generated at: " + outputPath);
+
+        // Open the generated HTML file in the default browser
+        openHtmlInBrowser(outputPath);
     }
 
     /**
@@ -139,17 +143,30 @@ public class CSVProcessor {
         }
     }
 
-    private static String generateUniqueOutputPath(String basePath, String extension) {
-        String outputPath = basePath + "." + extension;
+    private static String generateUniqueOutputPath(String basePath) {
+        String outputPath = basePath + "." + "html";
         File file = new File(outputPath);
 
         int counter = 1;
         while (file.exists()) {
-            outputPath = basePath + "(" + counter + ")." + extension;
+            outputPath = basePath + "(" + counter + ")." + "html";
             file = new File(outputPath);
             counter++;
         }
 
         return outputPath;
+    }
+
+    private static void openHtmlInBrowser(String htmlFilePath) {
+        try {
+            File htmlFile = new File(htmlFilePath);
+            if (htmlFile.exists()) {
+                Desktop.getDesktop().browse(htmlFile.toURI());
+            } else {
+                System.err.println("HTML file does not exist: " + htmlFilePath);
+            }
+        } catch (IOException e) {
+            System.err.println("Error opening HTML file in browser: " + e.getMessage());
+        }
     }
 }
