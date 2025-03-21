@@ -78,11 +78,12 @@ public class CSVProcessor {
             // Process each voucher
             for (CSVRecord record : records) {
                 // Extract the code from the second column (index 1)
-                String code = record.get(1); // Assuming the codes are in the second column
+                String code = record.get(0); // base code
+                String parsedCode = code.substring(code.indexOf(";\"")+2, code.indexOf("\";"));
 
                 writer.write("        <div class=\"voucher\">\n");
                 writer.write("            <h1>Voucher</h1>\n");
-                writer.write(String.format("            <p><strong>Code:</strong> %s</p>\n", code)); // Include the code
+                writer.write(String.format("            <p><strong>Code:</strong> %s</p>\n", parsedCode)); // Include the code
                 writer.write(String.format("            <p><strong>Price:</strong> %.2f</p>\n", price));
                 writer.write(String.format("            <p><strong>Name:</strong> %s</p>\n", name));
                 writer.write(String.format("            <p><strong>Uptime:</strong> %s</p>\n", uptime));
