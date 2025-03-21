@@ -11,6 +11,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 
 // Import for OpenHtmlToPdf library
@@ -21,6 +22,8 @@ import org.jsoup.helper.W3CDom;
 import org.w3c.dom.Document;
 
 import java.util.logging.Level;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class CSVProcessor {
 
@@ -118,6 +121,49 @@ public class CSVProcessor {
             // Read the HTML file content
             String htmlContent = Files.readString(Path.of(htmlFilePath), StandardCharsets.UTF_8);
 
+            /// Extract the original image path from the HTML
+            String originalImgPath = "";
+            Pattern pattern = Pattern.compile("file:///([^\"]+)");
+            Matcher matcher = pattern.matcher(htmlContent);
+            if (matcher.find()) {
+                originalImgPath = matcher.group(1);
+                // Convert Windows path format to proper file path
+                originalImgPath = originalImgPath.replace('\\', '/');
+            }
+
+            System.out.println("Original image path found: " + originalImgPath);
+
+            // Create a File object for the original image
+            File originalImageFile = new File(originalImgPath);
+
+            if (originalImageFile.exists()) {
+                System.out.println("Image file exists at: " + originalImageFile.getAbsolutePath());
+
+                // Read the image file and convert to Base64
+                byte[] imageBytes = Files.readAllBytes(originalImageFile.toPath());
+                String base64Image = Base64.getEncoder().encodeToString(imageBytes);
+
+                // Determine image MIME type
+                String mimeType = "image/jpeg"; // Default
+                if (originalImgPath.toLowerCase().endsWith(".png")) {
+                    mimeType = "image/png";
+                } else if (originalImgPath.toLowerCase().endsWith(".webp")) {
+                    mimeType = "image/webp";
+                }
+
+                // Replace the file:/// reference with a data URI
+                String dataUri = "data:" + mimeType + ";base64," + base64Image;
+                htmlContent = htmlContent.replaceAll("file:///[^\"]+", dataUri);
+
+                System.out.println("Replaced image reference with Base64 data URI");
+            } else {
+                System.out.println("Warning: Original image not found at: " + originalImageFile.getAbsolutePath());
+            }
+
+            // Fix for rotated text - use a different approach that's better supported
+            htmlContent = htmlContent.replace("transform: rotate(-90deg)",
+                    "writing-mode: vertical-rl; text-orientation: mixed; transform: rotate(-90deg)");
+
             // Parse HTML to DOM using jsoup
             org.jsoup.nodes.Document jsoupDoc = Jsoup.parse(htmlContent);
             jsoupDoc.outputSettings().syntax(org.jsoup.nodes.Document.OutputSettings.Syntax.xml);
@@ -129,8 +175,11 @@ public class CSVProcessor {
             try (OutputStream os = new FileOutputStream(pdfFilePath)) {
                 PdfRendererBuilder builder = new PdfRendererBuilder();
 
-                // Configure renderer
-                builder.withW3cDocument(w3cDoc, new File(htmlFilePath).toURI().toString());
+                // Set base URI to resolve resources
+                // This uses the URI format which most versions support
+                String baseUri = new File(htmlFilePath).getParentFile().toURI().toString();
+                builder.withW3cDocument(w3cDoc, baseUri);
+
                 builder.toStream(os);
 
                 // Set A4 paper size with small margins
