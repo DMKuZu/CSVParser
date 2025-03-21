@@ -19,7 +19,7 @@ import java.util.List;
 public class CSVProcessor {
 
     public static void processCSV(String csvFilePath, double price, String name, String uptime,
-                                  String validity, String speed, double voucherScale) throws IOException {
+                                  String validity, String speed) throws IOException {
 
         File csvFile = new File(csvFilePath);
 
@@ -56,9 +56,6 @@ public class CSVProcessor {
             System.err.println("Template file not found: " + templatePath + " or " + voucherTemplatePath);
             return;
         }
-
-        // Replace font size placeholder in template
-        mainTemplate = mainTemplate.replace("${FONT_SIZE}", String.format("%.2fpx", voucherScale * 12));
 
         // Generate voucher HTML content
         StringBuilder vouchersContent = new StringBuilder();
