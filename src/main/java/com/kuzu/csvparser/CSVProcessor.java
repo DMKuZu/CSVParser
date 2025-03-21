@@ -1,14 +1,12 @@
 package com.kuzu.csvparser;
 
+import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
 
 import java.awt.Desktop;
-import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -87,10 +85,28 @@ public class CSVProcessor {
             writer.write(finalHtml);
         }
 
-        System.out.println("HTML file with vouchers generated at: " + outputPath);
+        // After generating the HTML file, convert it to PDF
+        String pdfOutputPath = outputPath.replace(".html", ".pdf");
+        convertHtmlToPdf(outputPath, pdfOutputPath);
 
-        // Open the generated HTML file in the default browser
-        openHtmlInBrowser(outputPath);
+        openPdfInViewer(pdfOutputPath);
+    }
+
+    /**
+     * Converts an HTML file to a PDF using OpenHTMLToPDF.
+     *
+     * @param htmlFilePath Path to the input HTML file.
+     * @param pdfFilePath  Path to the output PDF file.
+     */
+    private static void convertHtmlToPdf(String htmlFilePath, String pdfFilePath) {
+        try (OutputStream os = new FileOutputStream(pdfFilePath)) {
+            PdfRendererBuilder builder = new PdfRendererBuilder();
+            builder.withFile(new File(htmlFilePath)); // Input HTML file
+            builder.toStream(os); // Output PDF file
+            builder.run();
+        } catch (Exception e) {
+            System.err.println("Error converting HTML to PDF: " + e.getMessage());
+        }
     }
 
     /**
@@ -154,16 +170,21 @@ public class CSVProcessor {
         return outputPath;
     }
 
-    private static void openHtmlInBrowser(String htmlFilePath) {
+    /**
+     * Opens the generated PDF file in the default PDF viewer.
+     *
+     * @param pdfFilePath Path to the PDF file to open.
+     */
+    private static void openPdfInViewer(String pdfFilePath) {
         try {
-            File htmlFile = new File(htmlFilePath);
-            if (htmlFile.exists()) {
-                Desktop.getDesktop().browse(htmlFile.toURI());
+            File pdfFile = new File(pdfFilePath);
+            if (pdfFile.exists()) {
+                Desktop.getDesktop().open(pdfFile); // Open the PDF file
             } else {
-                System.err.println("HTML file does not exist: " + htmlFilePath);
+                System.err.println("PDF file does not exist: " + pdfFilePath);
             }
         } catch (IOException e) {
-            System.err.println("Error opening HTML file in browser: " + e.getMessage());
+            System.err.println("Error opening PDF file in viewer: " + e.getMessage());
         }
     }
 }

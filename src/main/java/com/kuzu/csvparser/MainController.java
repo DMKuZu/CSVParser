@@ -70,6 +70,8 @@ public class MainController {
             } catch (IOException e) {
                 taCSVfile.setText("Error generating vouchers: " + e.getMessage());
             }
+
+            selectedFile = null;
         });
     }
 

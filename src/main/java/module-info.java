@@ -4,6 +4,7 @@ module com.kuzu.csvparser {
     requires commons.csv;
     requires org.apache.pdfbox;
     requires java.desktop;
+    requires openhtmltopdf.pdfbox;
 
 
     opens com.kuzu.csvparser to javafx.fxml;
