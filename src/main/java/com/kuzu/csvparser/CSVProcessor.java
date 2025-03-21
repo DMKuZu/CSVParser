@@ -9,13 +9,16 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
 public class CSVProcessor {
 
     public static void processCSV(String csvFilePath, double price, String name, String uptime,
-                                  String validity, String speed, double voucherScale) throws IOException, InterruptedException {
+                                  String validity, String speed, double voucherScale) throws IOException {
 
         File csvFile = new File(csvFilePath);
 
@@ -40,65 +43,100 @@ public class CSVProcessor {
         String basePath = csvFilePath.replace(".csv", "_vouchers");
         String outputPath = generateUniqueOutputPath(basePath, "html");
 
-        // Create HTML file
-        File htmlFile = new File(outputPath);
+        // Load HTML template from the template folder within the application
+        String templatePath = findTemplatePath("root_template.html");
+        String mainTemplate = loadTemplate(templatePath);
 
-        try (FileWriter writer = new FileWriter(htmlFile, StandardCharsets.UTF_8)) {
-            // Write HTML header
-            writer.write("<!DOCTYPE html>\n");
-            writer.write("<html lang=\"en\">\n");
-            writer.write("<head>\n");
-            writer.write("    <meta charset=\"UTF-8\">\n");
-            writer.write("    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n");
-            writer.write("    <title>Vouchers</title>\n");
-            writer.write("    <style>\n");
-            writer.write("        body { font-family: Arial, sans-serif; margin: 20px; }\n");
-            writer.write("        .voucher-container { display: flex; flex-wrap: wrap; justify-content: space-around; }\n");
-            writer.write("        .voucher {\n");
-            writer.write("            border: 1px solid black;\n");
-            writer.write("            border-radius: 5px;\n");
-            writer.write("            padding: 15px;\n");
-            writer.write("            margin: 10px;\n");
-            writer.write("            width: 300px;\n");
-            writer.write(String.format("            font-size: %.2fpx;\n", voucherScale * 12));
-            writer.write("            box-shadow: 0 2px 5px rgba(0,0,0,0.1);\n");
-            writer.write("        }\n");
-            writer.write("        .voucher h1 { margin-top: 0; text-align: center; }\n");
-            writer.write("        .voucher p { margin: 8px 0; }\n");
-            writer.write("        @media print {\n");
-            writer.write("            .voucher { page-break-inside: avoid; }\n");
-            writer.write("            @page { margin: 0.5cm; }\n");
-            writer.write("        }\n");
-            writer.write("    </style>\n");
-            writer.write("</head>\n");
-            writer.write("<body>\n");
-            writer.write("    <h1>Generated Vouchers</h1>\n");
-            writer.write("    <div class=\"voucher-container\">\n");
+        // Load voucher template from the template folder within the application
+        String voucherTemplatePath = findTemplatePath("voucher_template.html");
+        String voucherTemplate = loadTemplate(voucherTemplatePath);
 
-            // Process each voucher
-            for (CSVRecord record : records) {
-                // Extract the code from the second column (index 1)
+        if (mainTemplate == null || voucherTemplate == null) {
+            System.err.println("Template file not found: " + templatePath + " or " + voucherTemplatePath);
+            return;
+        }
+
+        // Replace font size placeholder in template
+        mainTemplate = mainTemplate.replace("${FONT_SIZE}", String.format("%.2fpx", voucherScale * 12));
+
+        // Generate voucher HTML content
+        StringBuilder vouchersContent = new StringBuilder();
+        for (CSVRecord record : records) {
+            // Get the raw record value for the code
+            String parsedCode = "";
+            if (record.size() > 0) {
                 String code = record.get(0); // base code
-                String parsedCode = code.substring(code.indexOf(";\"")+2, code.indexOf("\";"));
-
-                writer.write("        <div class=\"voucher\">\n");
-                writer.write("            <h1>Voucher</h1>\n");
-                writer.write(String.format("            <p><strong>Code:</strong> %s</p>\n", parsedCode)); // Include the code
-                writer.write(String.format("            <p><strong>Price:</strong> %.2f</p>\n", price));
-                writer.write(String.format("            <p><strong>Name:</strong> %s</p>\n", name));
-                writer.write(String.format("            <p><strong>Uptime:</strong> %s</p>\n", uptime));
-                writer.write(String.format("            <p><strong>Validity:</strong> %s</p>\n", validity));
-                writer.write(String.format("            <p><strong>Speed:</strong> %s</p>\n", speed));
-                writer.write("        </div>\n");
+                parsedCode = code.substring(code.indexOf(";\"")+2, code.indexOf("\";"));
             }
 
-            // Close HTML tags
-            writer.write("    </div>\n");
-            writer.write("</body>\n");
-            writer.write("</html>");
+            // Use the template with placeholders
+            String voucherHtml = voucherTemplate
+                    .replace("${price}", String.format("%.2f", price))
+                    .replace("${name}", name)
+                    .replace("${uptime}", uptime)
+                    .replace("${validity}", validity)
+                    .replace("${speed}", speed)
+                    .replace("${code}", parsedCode);
+
+            vouchersContent.append(voucherHtml);
+        }
+
+        // Replace vouchers placeholder in template
+        String finalHtml = mainTemplate.replace("${VOUCHERS}", vouchersContent.toString());
+
+        // Write to output file
+        try (FileWriter writer = new FileWriter(outputPath, StandardCharsets.UTF_8)) {
+            writer.write(finalHtml);
         }
 
         System.out.println("HTML file with vouchers generated at: " + outputPath);
+    }
+
+    /**
+     * Find the template path by looking in multiple possible locations
+     */
+    private static String findTemplatePath(String templateFileName) {
+        // List of potential template locations to check
+        List<String> potentialPaths = new ArrayList<>();
+
+        // 1. Check template folder relative to application directory
+        String appDir = System.getProperty("user.dir");
+        potentialPaths.add(Paths.get(appDir, "template", templateFileName).toString());
+
+        // 2. Check template folder relative to JAR location
+        try {
+            String jarPath = CSVProcessor.class.getProtectionDomain().getCodeSource().getLocation().getPath();
+            File jarFile = new File(jarPath);
+            String jarDir = jarFile.getParentFile().getPath();
+            potentialPaths.add(Paths.get(jarDir, "template", templateFileName).toString());
+        } catch (Exception e) {
+            System.err.println("Warning: Could not determine JAR location: " + e.getMessage());
+        }
+
+        // 3. Check relative to the class path
+        potentialPaths.add(Paths.get("template", templateFileName).toString());
+
+        // Try each path
+        for (String path : potentialPaths) {
+            if (Files.exists(Path.of(path))) {
+                System.out.println("Found template at: " + path);
+                return path;
+            }
+        }
+
+        // If not found, return the default path for error reporting
+        System.err.println("Template not found in any of the following locations:");
+        potentialPaths.forEach(path -> System.err.println("- " + path));
+        return potentialPaths.get(0);
+    }
+
+    private static String loadTemplate(String templatePath) {
+        try {
+            return Files.readString(Path.of(templatePath), StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            System.err.println("Error reading template file: " + e.getMessage());
+            return null;
+        }
     }
 
     private static String generateUniqueOutputPath(String basePath, String extension) {
