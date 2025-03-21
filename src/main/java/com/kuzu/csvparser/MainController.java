@@ -18,35 +18,11 @@ public class MainController {
     public TextField tfSpeed;
     public Button btnChooseFile;
     public TextArea taCSVfile;
-    public Slider sliderScale;
 
     private File selectedFile;
 
     @FXML
     public void initialize() {
-
-        // Add a label to show percentage
-        sliderScale.setLabelFormatter(new StringConverter<Double>() {
-            @Override
-            public String toString(Double value) {
-                return String.format("%.0f%%", value);
-            }
-
-            @Override
-            public Double fromString(String string) {
-                try {
-                    return Double.parseDouble(string.replace("%", "")) / 100.0;
-                } catch (NumberFormatException ignored) {
-                    return 1.5;
-                }
-            }
-        });
-
-        // Update FXML TextArea with current percentage when slider moves
-       /* sliderScale.valueProperty().addListener((obs, oldVal, newVal) -> {
-            int percentage = (int) (newVal.doubleValue() * 100);
-            taCSVfile.setText(String.format("Scale: %d%%", percentage));
-        });*/
 
         // Set up the file chooser button
         btnChooseFile.setOnAction(event -> {
@@ -78,7 +54,6 @@ public class MainController {
                 String uptime = tfUptime.getText();
                 String validity = tfValidity.getText();
                 String speed = tfSpeed.getText();
-                double voucherScale = sliderScale.getValue() / 100;
 
                 // Check if a file is selected
                 if (selectedFile == null) {
@@ -87,15 +62,13 @@ public class MainController {
                 }
 
                 // Process the CSV file and generate the PDF
-                CSVProcessor.processCSV(selectedFile.getAbsolutePath(), price, name, uptime, validity, speed, voucherScale);
+                CSVProcessor.processCSV(selectedFile.getAbsolutePath(), price, name, uptime, validity, speed);
                 taCSVfile.setText("Vouchers located at: " + selectedFile.getParent());
-                System.out.println(price + " " + name + " " + uptime + " " + validity + " " + speed + " " + voucherScale);
+                System.out.println(price + " " + name + " " + uptime + " " + validity + " " + speed);
             } catch (NumberFormatException e) {
                 taCSVfile.setText("Invalid input. Please check your values.");
             } catch (IOException e) {
                 taCSVfile.setText("Error generating vouchers: " + e.getMessage());
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
             }
         });
     }
