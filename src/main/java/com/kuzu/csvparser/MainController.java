@@ -35,8 +35,10 @@ public class MainController {
             @Override
             public Double fromString(String string) {
                 try {
-                    return Double.parseDouble(string.replace("%", ""))/100.0;
-                } catch (NumberFormatException ignored) { return 1.5;}
+                    return Double.parseDouble(string.replace("%", "")) / 100.0;
+                } catch (NumberFormatException ignored) {
+                    return 1.5;
+                }
             }
         });
 
@@ -76,7 +78,7 @@ public class MainController {
                 String uptime = tfUptime.getText();
                 String validity = tfValidity.getText();
                 String speed = tfSpeed.getText();
-                double voucherScale = sliderScale.getValue()/100;
+                double voucherScale = sliderScale.getValue() / 100;
 
                 // Check if a file is selected
                 if (selectedFile == null) {
@@ -92,6 +94,8 @@ public class MainController {
                 taCSVfile.setText("Invalid input. Please check your values.");
             } catch (IOException e) {
                 taCSVfile.setText("Error generating vouchers: " + e.getMessage());
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
             }
         });
     }
