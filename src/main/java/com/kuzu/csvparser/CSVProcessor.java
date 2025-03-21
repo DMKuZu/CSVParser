@@ -160,7 +160,8 @@ public class CSVProcessor {
                 ITextRenderer renderer = new ITextRenderer();
                 generateVoucherPage(renderer, sublist);
 
-                try (OutputStream outputStream = new FileOutputStream(tempFile)) {
+                try (OutputStream outputStream = new FileOutputStream(tempFile))
+                {
                     renderer.createPDF(outputStream);
                     outputStream.flush(); // Ensure all data is written
                     System.out.println("Generated temporary file: " + tempFile.getAbsolutePath());
