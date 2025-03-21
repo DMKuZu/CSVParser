@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vouchers</title>
+    <style type="text/css">
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: "Century Gothic", sans-serif;
+        }
+
+        .card {
+            display: inline-block;
+            width: 299px;
+            height: 190px;
+            background-image: url('pink.jpg');
+            background-repeat: no-repeat;
+            background-position: center center;
+            border: 1px dashed #999;
+            margin-top: 3px;
+            position: relative;
+        }
+
+        .card-top-text,
+        .card-username,
+        .card-price,
+        .card-title,
+        .card-uptime,
+        .card-validity,
+        .card-speed {
+            position: absolute;
+            text-align: center;
+        }
+
+        .card-top-text {
+            font-size: 30px;
+            top: 75px;
+            left: 35px;
+        }
+
+        .card-username {
+            font-size: 30px;
+            top: 110px;
+            left: 35px;
+        }
+
+        .card-price {
+            font-size: 30px;
+            transform: rotate(-90deg);
+            top: 50%;
+            left: -135px;
+            color: white;
+        }
+
+        .card-title {
+            font-size: 21px;
+            font-weight: bold;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .card-uptime,
+        .card-validity,
+        .card-speed {
+            font-size: 12px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .card-uptime {
+            top: 130px;
+        }
+
+        .card-validity {
+            top: 145px;
+        }
+
+        .card-speed {
+            top: 160px;
+        }
+    </style>
+</head>
+
+<body>
+${VOUCHERS}
+</body>
+</html>
