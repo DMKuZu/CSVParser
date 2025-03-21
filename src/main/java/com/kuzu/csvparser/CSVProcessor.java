@@ -9,14 +9,8 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class CSVProcessor {
 
@@ -82,9 +76,13 @@ public class CSVProcessor {
             writer.write("    <div class=\"voucher-container\">\n");
 
             // Process each voucher
-            for (int i = 0; i < totalVouchers; i++) {
+            for (CSVRecord record : records) {
+                // Extract the code from the second column (index 1)
+                String code = record.get(1); // Assuming the codes are in the second column
+
                 writer.write("        <div class=\"voucher\">\n");
                 writer.write("            <h1>Voucher</h1>\n");
+                writer.write(String.format("            <p><strong>Code:</strong> %s</p>\n", code)); // Include the code
                 writer.write(String.format("            <p><strong>Price:</strong> %.2f</p>\n", price));
                 writer.write(String.format("            <p><strong>Name:</strong> %s</p>\n", name));
                 writer.write(String.format("            <p><strong>Uptime:</strong> %s</p>\n", uptime));
