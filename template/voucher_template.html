@@ -1,10 +1,9 @@
-<div class="box">
-    <img src="pink.jpg" alt="Voucher Background" loading="lazy" class="background-image"/>
-    <div class="form1"><div class="user">.</div></div>
-    <div class="form2"><div class="user">${code}</div></div>
-    <div class="form3"><div>${price}</div></div>
-    <div class="form4"><div>${name}</div></div>
-    <div class="form5"><div>UPTIME: ${uptime}</div></div>
-    <div class="form6"><div>VALIDITY: ${validity}</div></div>
-    <div class="form7"><div>SPEED: ${speed}</div></div>
+<div class="voucher-box">
+    <img src="file:///C:\Users\Winston\IdeaProjects\CSVParser\template\bg_voucher.webp" alt="Voucher Background" loading="lazy" class="voucher-background"/>
+    <div class="voucher-price" style="top: 32%; right: 84%">${price}</div>
+    <div class="voucher-name" style="top: 1%; left: 32%;">${name}</div>
+    <div class="voucher-uptime" style="top: 12%; left: 15%;">UPTIME: <strong> ${uptime} </strong></div>
+    <div class="voucher-validity" style="top: 20%; left: 30%;">VALIDITY: <strong> ${validity}</strong></div>
+    <div class="voucher-speed" style="top: 12%; right: 15%;">SPEED: <strong>${speed}</strong></div>
+    <div class="voucher-code" style="bottom: 15%; left: 12%;">${code}</div>
 </div>

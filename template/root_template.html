@@ -1,21 +1,32 @@
-<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
 <head>
-    <meta charset="UTF-8"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
     <title>Vouchers</title>
     <style>
-        .box {
+        /* Define page margins */
+        @page {
+            size: A4;
+            margin: 2mm;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        .voucher-box {
             display: inline-block;
-            height: 190px;
-            width: 299px;
+            height: 150px;
+            width: 250px;
             position: relative;
             border: 1px dashed #999;
-            margin-top: 3px;
+            margin: 2px;
             overflow: hidden;
         }
 
-        .background-image {
+        .voucher-background {
             position: absolute;
             top: 0;
             left: 0;
@@ -23,54 +34,40 @@
             height: 100%;
             object-fit: cover;
             z-index: -1;
+            opacity: 0.9;
         }
 
-        body {
-            margin: 0;
-            padding: 0;
-        }
-
-        .kiri {
-            float: left;
-            margin: 51px 0 0 35px;
-            font-family: "Courier New", monospace;
-            font-weight: bold;
-        }
-
-        .kanan {
-            float: right;
-            width: 103px;
-            margin: 20px 40px 0 0;
-        }
-
-        .form1 { font-size: 30px; margin: 75px 0 0 35px; }
-        .form2 { font-size: 28px; margin: 25px 0 0 35px; }
-        .form3 {
+        .voucher-price {
+            position: absolute;
+            font-size: 26px;
             transform: rotate(-90deg);
-            font-size: 30px;
-            margin: -105px 0 0 -268px;
-            text-align: center;
-            font-family: "Century Gothic", sans-serif;
             color: white;
+            z-index: 1;
         }
-        .form4 {
-            font-size: 21px;
-            margin: -102px 0 0 -7px;
-            text-align: center;
-            font-family: "Century Gothic", sans-serif;
+
+        .voucher-code {
+            position: absolute;
+            font-size: 20px;
             font-weight: bold;
+            z-index: 2;
         }
-        .form5, .form6, .form7 {
-            font-size: 12px;
-            text-align: center;
-            font-family: "Century Gothic", sans-serif;
+
+        .voucher-name {
+            position: absolute;
+            font-size: 16px;
+            font-weight: bold;
+            z-index: 3;
         }
-        .form5 { margin: -1px 0 0 -136px; }
-        .form6 { margin: 1px 0 0 -129px; }
-        .form7 { margin: -31px 0 0 95px; }
+
+        .voucher-uptime,
+        .voucher-validity,
+        .voucher-speed {
+            position: absolute;
+            font-size: 10px;
+            z-index: 4;
+        }
     </style>
 </head>
-
 <body>
 ${VOUCHERS}
 </body>

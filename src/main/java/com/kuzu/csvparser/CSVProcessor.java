@@ -1,6 +1,5 @@
 package com.kuzu.csvparser;
 
-import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
@@ -13,6 +12,15 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+
+// Import for OpenHtmlToPdf library
+import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
+import com.openhtmltopdf.util.XRLog;
+import org.jsoup.Jsoup;
+import org.jsoup.helper.W3CDom;
+import org.w3c.dom.Document;
+
+import java.util.logging.Level;
 
 public class CSVProcessor {
 
@@ -40,7 +48,8 @@ public class CSVProcessor {
 
         // Generate unique output path for HTML file
         String basePath = csvFilePath.replace(".csv", "_vouchers");
-        String outputPath = generateUniqueOutputPath(basePath);
+        String htmlOutputPath = generateUniqueOutputPath(basePath, "html");
+        String pdfOutputPath = generateUniqueOutputPath(basePath, "pdf");
 
         // Load HTML template from the template folder within the application
         String templatePath = findTemplatePath("root_template.html");
@@ -80,32 +89,62 @@ public class CSVProcessor {
         // Replace vouchers placeholder in template
         String finalHtml = mainTemplate.replace("${VOUCHERS}", vouchersContent.toString());
 
-        // Write to output file
-        try (FileWriter writer = new FileWriter(outputPath, StandardCharsets.UTF_8)) {
+        // Write to HTML output file
+        try (FileWriter writer = new FileWriter(htmlOutputPath, StandardCharsets.UTF_8)) {
             writer.write(finalHtml);
         }
 
-        // After generating the HTML file, convert it to PDF
-        String pdfOutputPath = outputPath.replace(".html", ".pdf");
-        convertHtmlToPdf(outputPath, pdfOutputPath);
+        // Convert HTML to PDF with proper formatting
+        boolean pdfSuccess = convertHtmlToPdf(htmlOutputPath, pdfOutputPath);
 
-        openPdfInViewer(pdfOutputPath);
+        if (pdfSuccess) {
+            System.out.println("PDF file with vouchers generated at: " + pdfOutputPath);
+            openPdfInViewer(pdfOutputPath);
+        }
+
+        // Open the generated HTML file in the default browser
+        openHtmlInBrowser(htmlOutputPath);
     }
 
     /**
-     * Converts an HTML file to a PDF using OpenHTMLToPDF.
-     *
-     * @param htmlFilePath Path to the input HTML file.
-     * @param pdfFilePath  Path to the output PDF file.
+     * Convert HTML file to PDF using OpenHtmlToPdf
+     * This library provides better CSS support and layout preservation
      */
-    private static void convertHtmlToPdf(String htmlFilePath, String pdfFilePath) {
-        try (OutputStream os = new FileOutputStream(pdfFilePath)) {
-            PdfRendererBuilder builder = new PdfRendererBuilder();
-            builder.withFile(new File(htmlFilePath)); // Input HTML file
-            builder.toStream(os); // Output PDF file
-            builder.run();
+    private static boolean convertHtmlToPdf(String htmlFilePath, String pdfFilePath) {
+        try {
+            // Reduce logging noise
+            XRLog.setLoggingEnabled(false);
+
+            // Read the HTML file content
+            String htmlContent = Files.readString(Path.of(htmlFilePath), StandardCharsets.UTF_8);
+
+            // Parse HTML to DOM using jsoup
+            org.jsoup.nodes.Document jsoupDoc = Jsoup.parse(htmlContent);
+            jsoupDoc.outputSettings().syntax(org.jsoup.nodes.Document.OutputSettings.Syntax.xml);
+
+            // Convert to W3C Document
+            Document w3cDoc = new W3CDom().fromJsoup(jsoupDoc);
+
+            // Create PDF output stream
+            try (OutputStream os = new FileOutputStream(pdfFilePath)) {
+                PdfRendererBuilder builder = new PdfRendererBuilder();
+
+                // Configure renderer
+                builder.withW3cDocument(w3cDoc, new File(htmlFilePath).toURI().toString());
+                builder.toStream(os);
+
+                // Set A4 paper size with small margins
+                builder.useDefaultPageSize(210, 297, PdfRendererBuilder.PageSizeUnits.MM);
+
+                // Build and run renderer
+                builder.run();
+
+                return true;
+            }
         } catch (Exception e) {
             System.err.println("Error converting HTML to PDF: " + e.getMessage());
+            e.printStackTrace();
+            return false;
         }
     }
 
@@ -156,13 +195,13 @@ public class CSVProcessor {
         }
     }
 
-    private static String generateUniqueOutputPath(String basePath) {
-        String outputPath = basePath + "." + "html";
+    private static String generateUniqueOutputPath(String basePath, String extension) {
+        String outputPath = basePath + "." + extension;
         File file = new File(outputPath);
 
         int counter = 1;
         while (file.exists()) {
-            outputPath = basePath + "(" + counter + ")." + "html";
+            outputPath = basePath + "(" + counter + ")." + extension;
             file = new File(outputPath);
             counter++;
         }
@@ -185,6 +224,19 @@ public class CSVProcessor {
             }
         } catch (IOException e) {
             System.err.println("Error opening PDF file in viewer: " + e.getMessage());
+        }
+    }
+
+    private static void openHtmlInBrowser(String htmlFilePath) {
+        try {
+            File htmlFile = new File(htmlFilePath);
+            if (htmlFile.exists()) {
+                Desktop.getDesktop().browse(htmlFile.toURI());
+            } else {
+                System.err.println("HTML file does not exist: " + htmlFilePath);
+            }
+        } catch (IOException e) {
+            System.err.println("Error opening HTML file in browser: " + e.getMessage());
         }
     }
 }
