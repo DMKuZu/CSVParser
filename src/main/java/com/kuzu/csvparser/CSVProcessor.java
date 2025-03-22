@@ -11,7 +11,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.List;
 
 // Import for OpenHtmlToPdf library
@@ -21,7 +20,6 @@ import org.jsoup.Jsoup;
 import org.jsoup.helper.W3CDom;
 import org.w3c.dom.Document;
 
-import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -45,7 +43,7 @@ public class CSVProcessor {
 
         int totalVouchers = records.size();
         if (totalVouchers == 0) {
-            System.out.println("No vouchers to process.");
+//        System.out.println("No vouchers to process.");
             return;
         }
 
@@ -54,35 +52,21 @@ public class CSVProcessor {
         String htmlOutputPath = generateUniqueOutputPath(basePath, "html");
         String pdfOutputPath = generateUniqueOutputPath(basePath, "pdf");
 
-        // Find template directory
-        String templateDirectory = findTemplateDirectory();
-        if (templateDirectory == null) {
-            System.err.println("Template directory not found!");
-            return;
-        }
-
-        // Locate background image in the template directory
-        File bgImageFile = new File(templateDirectory, "bg_voucher.jpg");
-        if (!bgImageFile.exists()) {
-            System.err.println("Background image file not found: " + bgImageFile.getAbsolutePath());
-            return;
-        }
-
-        String bgImagePath = bgImageFile.toURI().toString();
-        System.out.println("Using background image at: " + bgImagePath);
-
-        // Load HTML template from the template folder within the application
+        // Load HTML template from the resources folder
         String templatePath = findTemplatePath("root_template.html");
         String mainTemplate = loadTemplate(templatePath);
 
-        // Load voucher template from the template folder within the application
+        // Load voucher template from the resources folder
         String voucherTemplatePath = findTemplatePath("voucher_template.html");
         String voucherTemplate = loadTemplate(voucherTemplatePath);
 
         if (mainTemplate == null || voucherTemplate == null) {
-            System.err.println("Template file not found: " + templatePath + " or " + voucherTemplatePath);
+//        System.err.println("Template file not found: " + templatePath + " or " + voucherTemplatePath);
             return;
         }
+
+        // Get the background image path as a resource
+        String bgImagePath = CSVProcessor.class.getResource("/template/bg_voucher.jpg").toString();
 
         // Update the image path in the voucher template
         voucherTemplate = updateImagePathInTemplate(voucherTemplate, bgImagePath);
@@ -94,7 +78,7 @@ public class CSVProcessor {
             String parsedCode = "";
             if (record.size() > 0) {
                 String code = record.get(0); // base code
-                parsedCode = code.substring(code.indexOf(";\"")+2, code.indexOf("\";"));
+                parsedCode = code.substring(code.indexOf(";\"") + 2, code.indexOf("\";"));
             }
 
             // Use the template with placeholders
@@ -121,20 +105,14 @@ public class CSVProcessor {
         boolean pdfSuccess = convertHtmlToPdf(htmlOutputPath, pdfOutputPath);
 
         if (pdfSuccess) {
-            System.out.println("PDF file with vouchers generated at: " + pdfOutputPath);
+//        System.out.println("PDF file with vouchers generated at: " + pdfOutputPath);
             openPdfInViewer(pdfOutputPath);
         }
-
-        // Open the generated HTML file in the default browser
-        openHtmlInBrowser(htmlOutputPath);
     }
 
-    /**
-     * Updates the image path in the voucher template to use a valid path
-     */
     private static String updateImagePathInTemplate(String template, String newImagePath) {
         // Use regex to replace the image source path
-        Pattern pattern = Pattern.compile("src=\"file:///[^\"]+\"");
+        Pattern pattern = Pattern.compile("src=\"[^\"]+\"");
         Matcher matcher = pattern.matcher(template);
         if (matcher.find()) {
             return template.replace(matcher.group(0), "src=\"" + newImagePath + "\"");
@@ -185,94 +163,28 @@ public class CSVProcessor {
                 return true;
             }
         } catch (Exception e) {
-            System.err.println("Error converting HTML to PDF: " + e.getMessage());
+//            System.err.println("Error converting HTML to PDF: " + e.getMessage());
             e.printStackTrace();
             return false;
         }
     }
 
-    /**
-     * Find the template directory by looking in multiple possible locations
-     */
-    private static String findTemplateDirectory() {
-        // List of potential template locations to check
-        List<String> potentialPaths = new ArrayList<>();
-
-        // 1. Check template folder relative to application directory
-        String appDir = System.getProperty("user.dir");
-        potentialPaths.add(Paths.get(appDir, "template").toString());
-
-        // 2. Check template folder relative to JAR location
-        try {
-            String jarPath = CSVProcessor.class.getProtectionDomain().getCodeSource().getLocation().getPath();
-            File jarFile = new File(jarPath);
-            String jarDir = jarFile.getParentFile().getPath();
-            potentialPaths.add(Paths.get(jarDir, "template").toString());
-        } catch (Exception e) {
-            System.err.println("Warning: Could not determine JAR location: " + e.getMessage());
-        }
-
-        // 3. Check relative to the class path
-        potentialPaths.add(Paths.get("template").toString());
-
-        // Try each path
-        for (String path : potentialPaths) {
-            Path pathObj = Path.of(path);
-            if (Files.exists(pathObj) && Files.isDirectory(pathObj)) {
-                System.out.println("Found template directory at: " + path);
-                return path;
-            }
-        }
-
-        // If not found, return null
-        System.err.println("Template directory not found in any of the following locations:");
-        potentialPaths.forEach(path -> System.err.println("- " + path));
-        return null;
-    }
-
-    /**
-     * Find the template path by looking in multiple possible locations
-     */
     private static String findTemplatePath(String templateFileName) {
-        // List of potential template locations to check
-        List<String> potentialPaths = new ArrayList<>();
-
-        // 1. Check template folder relative to application directory
-        String appDir = System.getProperty("user.dir");
-        potentialPaths.add(Paths.get(appDir, "template", templateFileName).toString());
-
-        // 2. Check template folder relative to JAR location
-        try {
-            String jarPath = CSVProcessor.class.getProtectionDomain().getCodeSource().getLocation().getPath();
-            File jarFile = new File(jarPath);
-            String jarDir = jarFile.getParentFile().getPath();
-            potentialPaths.add(Paths.get(jarDir, "template", templateFileName).toString());
-        } catch (Exception e) {
-            System.err.println("Warning: Could not determine JAR location: " + e.getMessage());
-        }
-
-        // 3. Check relative to the class path
-        potentialPaths.add(Paths.get("template", templateFileName).toString());
-
-        // Try each path
-        for (String path : potentialPaths) {
-            if (Files.exists(Path.of(path))) {
-                System.out.println("Found template at: " + path);
-                return path;
-            }
-        }
-
-        // If not found, return the default path for error reporting
-        System.err.println("Template not found in any of the following locations:");
-        potentialPaths.forEach(path -> System.err.println("- " + path));
-        return potentialPaths.get(0);
+        // The template file is in the resources folder, so we return the resource path
+        return "/template/" + templateFileName;
     }
 
     private static String loadTemplate(String templatePath) {
-        try {
-            return Files.readString(Path.of(templatePath), StandardCharsets.UTF_8);
+        try (InputStream inputStream = CSVProcessor.class.getResourceAsStream(templatePath);
+             BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
+            StringBuilder content = new StringBuilder();
+            String line;
+            while ((line = reader.readLine()) != null) {
+                content.append(line).append("\n");
+            }
+            return content.toString();
         } catch (IOException e) {
-            System.err.println("Error reading template file: " + e.getMessage());
+//        System.err.println("Error reading template file: " + e.getMessage());
             return null;
         }
     }
@@ -301,11 +213,11 @@ public class CSVProcessor {
             File pdfFile = new File(pdfFilePath);
             if (pdfFile.exists()) {
                 Desktop.getDesktop().open(pdfFile); // Open the PDF file
-            } else {
+            } /*else {
                 System.err.println("PDF file does not exist: " + pdfFilePath);
-            }
+            }*/
         } catch (IOException e) {
-            System.err.println("Error opening PDF file in viewer: " + e.getMessage());
+//            System.err.println("Error opening PDF file in viewer: " + e.getMessage());
         }
     }
 
@@ -314,11 +226,11 @@ public class CSVProcessor {
             File htmlFile = new File(htmlFilePath);
             if (htmlFile.exists()) {
                 Desktop.getDesktop().browse(htmlFile.toURI());
-            } else {
+            } /*else {
                 System.err.println("HTML file does not exist: " + htmlFilePath);
-            }
+            }*/
         } catch (IOException e) {
-            System.err.println("Error opening HTML file in browser: " + e.getMessage());
+//            System.err.println("Error opening HTML file in browser: " + e.getMessage());
         }
     }
 }
