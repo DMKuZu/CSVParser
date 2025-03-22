@@ -54,6 +54,23 @@ public class CSVProcessor {
         String htmlOutputPath = generateUniqueOutputPath(basePath, "html");
         String pdfOutputPath = generateUniqueOutputPath(basePath, "pdf");
 
+        // Find template directory
+        String templateDirectory = findTemplateDirectory();
+        if (templateDirectory == null) {
+            System.err.println("Template directory not found!");
+            return;
+        }
+
+        // Locate background image in the template directory
+        File bgImageFile = new File(templateDirectory, "bg_voucher.jpg");
+        if (!bgImageFile.exists()) {
+            System.err.println("Background image file not found: " + bgImageFile.getAbsolutePath());
+            return;
+        }
+
+        String bgImagePath = bgImageFile.toURI().toString();
+        System.out.println("Using background image at: " + bgImagePath);
+
         // Load HTML template from the template folder within the application
         String templatePath = findTemplatePath("root_template.html");
         String mainTemplate = loadTemplate(templatePath);
@@ -66,6 +83,9 @@ public class CSVProcessor {
             System.err.println("Template file not found: " + templatePath + " or " + voucherTemplatePath);
             return;
         }
+
+        // Update the image path in the voucher template
+        voucherTemplate = updateImagePathInTemplate(voucherTemplate, bgImagePath);
 
         // Generate voucher HTML content
         StringBuilder vouchersContent = new StringBuilder();
@@ -110,6 +130,19 @@ public class CSVProcessor {
     }
 
     /**
+     * Updates the image path in the voucher template to use a valid path
+     */
+    private static String updateImagePathInTemplate(String template, String newImagePath) {
+        // Use regex to replace the image source path
+        Pattern pattern = Pattern.compile("src=\"file:///[^\"]+\"");
+        Matcher matcher = pattern.matcher(template);
+        if (matcher.find()) {
+            return template.replace(matcher.group(0), "src=\"" + newImagePath + "\"");
+        }
+        return template;
+    }
+
+    /**
      * Convert HTML file to PDF using OpenHtmlToPdf
      * This library provides better CSS support and layout preservation
      */
@@ -120,45 +153,6 @@ public class CSVProcessor {
 
             // Read the HTML file content
             String htmlContent = Files.readString(Path.of(htmlFilePath), StandardCharsets.UTF_8);
-
-            /// Extract the original image path from the HTML
-            String originalImgPath = "";
-            Pattern pattern = Pattern.compile("file:///([^\"]+)");
-            Matcher matcher = pattern.matcher(htmlContent);
-            if (matcher.find()) {
-                originalImgPath = matcher.group(1);
-                // Convert Windows path format to proper file path
-                originalImgPath = originalImgPath.replace('\\', '/');
-            }
-
-            System.out.println("Original image path found: " + originalImgPath);
-
-            // Create a File object for the original image
-            File originalImageFile = new File(originalImgPath);
-
-            if (originalImageFile.exists()) {
-                System.out.println("Image file exists at: " + originalImageFile.getAbsolutePath());
-
-                // Read the image file and convert to Base64
-                byte[] imageBytes = Files.readAllBytes(originalImageFile.toPath());
-                String base64Image = Base64.getEncoder().encodeToString(imageBytes);
-
-                // Determine image MIME type
-                String mimeType = "image/jpeg"; // Default
-                if (originalImgPath.toLowerCase().endsWith(".png")) {
-                    mimeType = "image/png";
-                } else if (originalImgPath.toLowerCase().endsWith(".webp")) {
-                    mimeType = "image/webp";
-                }
-
-                // Replace the file:/// reference with a data URI
-                String dataUri = "data:" + mimeType + ";base64," + base64Image;
-                htmlContent = htmlContent.replaceAll("file:///[^\"]+", dataUri);
-
-                System.out.println("Replaced image reference with Base64 data URI");
-            } else {
-                System.out.println("Warning: Original image not found at: " + originalImageFile.getAbsolutePath());
-            }
 
             // Fix for rotated text - use a different approach that's better supported
             htmlContent = htmlContent.replace("transform: rotate(-90deg)",
@@ -195,6 +189,45 @@ public class CSVProcessor {
             e.printStackTrace();
             return false;
         }
+    }
+
+    /**
+     * Find the template directory by looking in multiple possible locations
+     */
+    private static String findTemplateDirectory() {
+        // List of potential template locations to check
+        List<String> potentialPaths = new ArrayList<>();
+
+        // 1. Check template folder relative to application directory
+        String appDir = System.getProperty("user.dir");
+        potentialPaths.add(Paths.get(appDir, "template").toString());
+
+        // 2. Check template folder relative to JAR location
+        try {
+            String jarPath = CSVProcessor.class.getProtectionDomain().getCodeSource().getLocation().getPath();
+            File jarFile = new File(jarPath);
+            String jarDir = jarFile.getParentFile().getPath();
+            potentialPaths.add(Paths.get(jarDir, "template").toString());
+        } catch (Exception e) {
+            System.err.println("Warning: Could not determine JAR location: " + e.getMessage());
+        }
+
+        // 3. Check relative to the class path
+        potentialPaths.add(Paths.get("template").toString());
+
+        // Try each path
+        for (String path : potentialPaths) {
+            Path pathObj = Path.of(path);
+            if (Files.exists(pathObj) && Files.isDirectory(pathObj)) {
+                System.out.println("Found template directory at: " + path);
+                return path;
+            }
+        }
+
+        // If not found, return null
+        System.err.println("Template directory not found in any of the following locations:");
+        potentialPaths.forEach(path -> System.err.println("- " + path));
+        return null;
     }
 
     /**
