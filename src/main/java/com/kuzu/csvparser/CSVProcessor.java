@@ -3,221 +3,287 @@ package com.kuzu.csvparser;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
-import org.apache.pdfbox.pdmodel.PDDocument;
-import org.apache.pdfbox.pdmodel.PDPage;
-import org.xhtmlrenderer.pdf.ITextRenderer;
 
-import java.io.File;
-import java.io.FileReader;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
+import java.awt.Desktop;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Date;
+import java.util.Base64;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+
+// Import for OpenHtmlToPdf library
+import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
+import com.openhtmltopdf.util.XRLog;
+import org.jsoup.Jsoup;
+import org.jsoup.helper.W3CDom;
+import org.w3c.dom.Document;
+
+import java.util.logging.Level;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class CSVProcessor {
-    /*public static void processCSV(String csvFilePath, double price, String name, String uptime, String validity, String speed, double voucherScale) throws IOException {
+
+    public static void processCSV(String csvFilePath, double price, String name, String uptime,
+                                  String validity, String speed) throws IOException {
+
         File csvFile = new File(csvFilePath);
 
-        // Use the builder pattern to configure CSVFormat
+        // Configure CSVFormat
         CSVFormat format = CSVFormat.DEFAULT.builder()
-                .setSkipHeaderRecord(true) // Skip the header record when parsing
+                .setSkipHeaderRecord(true)
                 .build();
 
-        CSVParser parser = CSVParser.parse(new FileReader(csvFile), format);
-
-        // Create a PDF document
-        PDDocument document = new PDDocument();
-
-        // Collect voucher data
-        List<String> voucherData = new ArrayList<>();
-        for (CSVRecord record : parser) {
-            String voucher = String.format(
-                    "<div style='font-size: %.2fpx; border: 1px solid black; padding: 10px; margin: 10px;'>" +
-                            "<h1>Voucher</h1>" +
-                            "<p><strong>Price:</strong> %.2f</p>" +
-                            "<p><strong>Name:</strong> %s</p>" +
-                            "<p><strong>Uptime:</strong> %s</p>" +
-                            "<p><strong>Validity:</strong> %s</p>" +
-                            "<p><strong>Speed:</strong> %s</p>" +
-                            "</div>",
-                    voucherScale * 12, // Scale font size
-                    price, name, uptime, validity, speed
-            );
-            voucherData.add(voucher);
+        // Parse CSV file
+        List<CSVRecord> records;
+        try (CSVParser parser = CSVParser.parse(new FileReader(csvFile), format)) {
+            records = new ArrayList<>(parser.getRecords());
         }
 
-        // Create a thread pool with 313 threads
-        ExecutorService executor = Executors.newFixedThreadPool(313);
-
-        // Divide the workload into chunks
-        int totalVouchers = voucherData.size();
-        int chunkSize = (int) Math.ceil((double) totalVouchers / 313); // Size of each chunk
-        int startIndex = 0;
-
-        for (int i = 0; i < 313; i++) {
-            int endIndex = Math.min(startIndex + chunkSize, totalVouchers);
-            List<String> sublist = voucherData.subList(startIndex, endIndex);
-            executor.submit(() -> generateVoucherPage(document, sublist));
-            startIndex = endIndex;
+        int totalVouchers = records.size();
+        if (totalVouchers == 0) {
+            System.out.println("No vouchers to process.");
+            return;
         }
 
-        // Shutdown the executor and wait for all threads to finish
-        executor.shutdown();
-        while (!executor.isTerminated()) {
-            // Wait for all threads to finish
-        }
-
-        // Save the PDF to the filepath of the csv file
-        String outputPath = csvFilePath.replace(".csv", "_vouchers.pdf");
-        document.save(outputPath);
-        document.close();
-        parser.close();
-    }
-
-    private static void generateVoucherPage(PDDocument document, List<String> voucherData) {
-        PDPage page = new PDPage();
-        document.addPage(page);
-
-        try (PDPageContentStream contentStream = new PDPageContentStream(document, page)) {
-            contentStream.setFont(PDType1Font.COURIER, 12);
-            contentStream.beginText();
-            contentStream.newLineAtOffset(50, 700); // Set starting position
-
-            for (String voucher : voucherData) {
-                // Simulate HTML formatting by writing plain text
-                contentStream.showText(voucher);
-                contentStream.newLineAtOffset(0, -15); // Move to the next line
-            }
-
-            contentStream.endText();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }*/
-    public static void processCSV(String csvFilePath, double price, String name, String uptime, String validity, String speed, double voucherScale) throws IOException {
-        File csvFile = new File(csvFilePath);
-
-        // Use the builder pattern to configure CSVFormat
-        CSVFormat format = CSVFormat.DEFAULT.builder()
-                .setSkipHeaderRecord(true) // Skip the header record when parsing
-                .build();
-
-        CSVParser parser = CSVParser.parse(new FileReader(csvFile), format);
-
-        // Collect voucher data
-        List<String> voucherData = new ArrayList<>();
-        for (CSVRecord record : parser) {
-            String voucher = String.format(
-                    """
-                        <div style='font-size: %.2fpx; border: 1px solid black; padding: 10px; margin: 10px;'>
-                            <h1>Voucher</h1>
-                            <p><strong>Price:</strong> %.2f</p>
-                            <p><strong>Name:</strong> %s</p>
-                            <p><strong>Uptime:</strong> %s</p>
-                            <p><strong>Validity:</strong> %s</p>
-                            <p><strong>Speed:</strong> %s</p>
-                        </div>
-                    """,
-                    voucherScale * 12, // Scale font size
-                    price, name, uptime, validity, speed
-            );
-            voucherData.add(voucher);
-        }
-
-        // Use a smaller thread pool size (e.g., based on the number of CPU cores)
-        int threadPoolSize = Runtime.getRuntime().availableProcessors();
-        ExecutorService executor = Executors.newFixedThreadPool(threadPoolSize);
-
-        // Divide the workload into chunks
-        int totalVouchers = voucherData.size();
-        int chunkSize = (int) Math.ceil((double) totalVouchers / threadPoolSize); // Size of each chunk
-        int startIndex = 0;
-
-        // Generate a unique output path
+        // Generate unique output path for HTML file
         String basePath = csvFilePath.replace(".csv", "_vouchers");
-        String outputPath = generateUniqueOutputPath(basePath);
+        String htmlOutputPath = generateUniqueOutputPath(basePath, "html");
+        String pdfOutputPath = generateUniqueOutputPath(basePath, "pdf");
 
-        // Create a list to hold temporary PDF files
-        List<File> tempFiles = Collections.synchronizedList(new ArrayList<>());
-
-        for (int i = 0; i < threadPoolSize; i++) {
-            int endIndex = Math.min(startIndex + chunkSize, totalVouchers);
-            List<String> sublist = voucherData.subList(startIndex, endIndex);
-
-            // Create a temporary file for this chunk
-            File tempFile = File.createTempFile("voucher_chunk_" + i, ".pdf");
-            tempFiles.add(tempFile);
-
-            executor.submit(() -> {
-                ITextRenderer renderer = new ITextRenderer();
-                generateVoucherPage(renderer, sublist);
-
-                try (OutputStream outputStream = new FileOutputStream(tempFile))
-                {
-                    renderer.createPDF(outputStream);
-                    outputStream.flush(); // Ensure all data is written
-                    System.out.println("Generated temporary file: " + tempFile.getAbsolutePath());
-                    /*if(tempFile.length() == 0) {
-                        System.err.println("Empty Generated temporary file: " + tempFile.getAbsolutePath());
-                        tempFile.delete();
-                    }*/
-                } catch (Exception e) {
-                    System.err.println("Failed to generate PDF for chunk: " + tempFile.getAbsolutePath());
-                    e.printStackTrace();
-                    // Delete the corrupted file
-                    tempFile.delete();
-                }
-            });
-
-            startIndex = endIndex;
+        // Find template directory
+        String templateDirectory = findTemplateDirectory();
+        if (templateDirectory == null) {
+            System.err.println("Template directory not found!");
+            return;
         }
 
-        // Shutdown the executor and wait for all threads to finish
-        executor.shutdown();
-        while (!executor.isTerminated()) {
-            // Wait for all threads to finish
+        // Locate background image in the template directory
+        File bgImageFile = new File(templateDirectory, "bg_voucher.jpg");
+        if (!bgImageFile.exists()) {
+            System.err.println("Background image file not found: " + bgImageFile.getAbsolutePath());
+            return;
         }
 
-        // Merge the temporary PDF files into a single PDF
-        mergePDFs(tempFiles, outputPath);
+        String bgImagePath = bgImageFile.toURI().toString();
+        System.out.println("Using background image at: " + bgImagePath);
 
-        // Clean up temporary files
-        for (File tempFile : tempFiles) {
-            if (tempFile.exists()) {
-                tempFile.delete();
+        // Load HTML template from the template folder within the application
+        String templatePath = findTemplatePath("root_template.html");
+        String mainTemplate = loadTemplate(templatePath);
+
+        // Load voucher template from the template folder within the application
+        String voucherTemplatePath = findTemplatePath("voucher_template.html");
+        String voucherTemplate = loadTemplate(voucherTemplatePath);
+
+        if (mainTemplate == null || voucherTemplate == null) {
+            System.err.println("Template file not found: " + templatePath + " or " + voucherTemplatePath);
+            return;
+        }
+
+        // Update the image path in the voucher template
+        voucherTemplate = updateImagePathInTemplate(voucherTemplate, bgImagePath);
+
+        // Generate voucher HTML content
+        StringBuilder vouchersContent = new StringBuilder();
+        for (CSVRecord record : records) {
+            // Get the raw record value for the code
+            String parsedCode = "";
+            if (record.size() > 0) {
+                String code = record.get(0); // base code
+                parsedCode = code.substring(code.indexOf(";\"")+2, code.indexOf("\";"));
+            }
+
+            // Use the template with placeholders
+            String voucherHtml = voucherTemplate
+                    .replace("${price}", String.format("%.2f", price))
+                    .replace("${name}", name)
+                    .replace("${uptime}", uptime)
+                    .replace("${validity}", validity)
+                    .replace("${speed}", speed)
+                    .replace("${code}", parsedCode);
+
+            vouchersContent.append(voucherHtml);
+        }
+
+        // Replace vouchers placeholder in template
+        String finalHtml = mainTemplate.replace("${VOUCHERS}", vouchersContent.toString());
+
+        // Write to HTML output file
+        try (FileWriter writer = new FileWriter(htmlOutputPath, StandardCharsets.UTF_8)) {
+            writer.write(finalHtml);
+        }
+
+        // Convert HTML to PDF with proper formatting
+        boolean pdfSuccess = convertHtmlToPdf(htmlOutputPath, pdfOutputPath);
+
+        if (pdfSuccess) {
+            System.out.println("PDF file with vouchers generated at: " + pdfOutputPath);
+            openPdfInViewer(pdfOutputPath);
+        }
+
+        // Open the generated HTML file in the default browser
+        openHtmlInBrowser(htmlOutputPath);
+    }
+
+    /**
+     * Updates the image path in the voucher template to use a valid path
+     */
+    private static String updateImagePathInTemplate(String template, String newImagePath) {
+        // Use regex to replace the image source path
+        Pattern pattern = Pattern.compile("src=\"file:///[^\"]+\"");
+        Matcher matcher = pattern.matcher(template);
+        if (matcher.find()) {
+            return template.replace(matcher.group(0), "src=\"" + newImagePath + "\"");
+        }
+        return template;
+    }
+
+    /**
+     * Convert HTML file to PDF using OpenHtmlToPdf
+     * This library provides better CSS support and layout preservation
+     */
+    private static boolean convertHtmlToPdf(String htmlFilePath, String pdfFilePath) {
+        try {
+            // Reduce logging noise
+            XRLog.setLoggingEnabled(false);
+
+            // Read the HTML file content
+            String htmlContent = Files.readString(Path.of(htmlFilePath), StandardCharsets.UTF_8);
+
+            // Fix for rotated text - use a different approach that's better supported
+            htmlContent = htmlContent.replace("transform: rotate(-90deg)",
+                    "writing-mode: vertical-rl; text-orientation: mixed; transform: rotate(-90deg)");
+
+            // Parse HTML to DOM using jsoup
+            org.jsoup.nodes.Document jsoupDoc = Jsoup.parse(htmlContent);
+            jsoupDoc.outputSettings().syntax(org.jsoup.nodes.Document.OutputSettings.Syntax.xml);
+
+            // Convert to W3C Document
+            Document w3cDoc = new W3CDom().fromJsoup(jsoupDoc);
+
+            // Create PDF output stream
+            try (OutputStream os = new FileOutputStream(pdfFilePath)) {
+                PdfRendererBuilder builder = new PdfRendererBuilder();
+
+                // Set base URI to resolve resources
+                // This uses the URI format which most versions support
+                String baseUri = new File(htmlFilePath).getParentFile().toURI().toString();
+                builder.withW3cDocument(w3cDoc, baseUri);
+
+                builder.toStream(os);
+
+                // Set A4 paper size with small margins
+                builder.useDefaultPageSize(210, 297, PdfRendererBuilder.PageSizeUnits.MM);
+
+                // Build and run renderer
+                builder.run();
+
+                return true;
+            }
+        } catch (Exception e) {
+            System.err.println("Error converting HTML to PDF: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    /**
+     * Find the template directory by looking in multiple possible locations
+     */
+    private static String findTemplateDirectory() {
+        // List of potential template locations to check
+        List<String> potentialPaths = new ArrayList<>();
+
+        // 1. Check template folder relative to application directory
+        String appDir = System.getProperty("user.dir");
+        potentialPaths.add(Paths.get(appDir, "template").toString());
+
+        // 2. Check template folder relative to JAR location
+        try {
+            String jarPath = CSVProcessor.class.getProtectionDomain().getCodeSource().getLocation().getPath();
+            File jarFile = new File(jarPath);
+            String jarDir = jarFile.getParentFile().getPath();
+            potentialPaths.add(Paths.get(jarDir, "template").toString());
+        } catch (Exception e) {
+            System.err.println("Warning: Could not determine JAR location: " + e.getMessage());
+        }
+
+        // 3. Check relative to the class path
+        potentialPaths.add(Paths.get("template").toString());
+
+        // Try each path
+        for (String path : potentialPaths) {
+            Path pathObj = Path.of(path);
+            if (Files.exists(pathObj) && Files.isDirectory(pathObj)) {
+                System.out.println("Found template directory at: " + path);
+                return path;
             }
         }
-        parser.close();
+
+        // If not found, return null
+        System.err.println("Template directory not found in any of the following locations:");
+        potentialPaths.forEach(path -> System.err.println("- " + path));
+        return null;
     }
 
-    private static void generateVoucherPage(ITextRenderer renderer, List<String> voucherData) {
-        StringBuilder htmlContent = new StringBuilder();
-        htmlContent.append("<html><head></head><body>");
-        for (String voucher : voucherData) {
-            htmlContent.append(voucher);
+    /**
+     * Find the template path by looking in multiple possible locations
+     */
+    private static String findTemplatePath(String templateFileName) {
+        // List of potential template locations to check
+        List<String> potentialPaths = new ArrayList<>();
+
+        // 1. Check template folder relative to application directory
+        String appDir = System.getProperty("user.dir");
+        potentialPaths.add(Paths.get(appDir, "template", templateFileName).toString());
+
+        // 2. Check template folder relative to JAR location
+        try {
+            String jarPath = CSVProcessor.class.getProtectionDomain().getCodeSource().getLocation().getPath();
+            File jarFile = new File(jarPath);
+            String jarDir = jarFile.getParentFile().getPath();
+            potentialPaths.add(Paths.get(jarDir, "template", templateFileName).toString());
+        } catch (Exception e) {
+            System.err.println("Warning: Could not determine JAR location: " + e.getMessage());
         }
-        htmlContent.append("</body></html>");
 
-        renderer.setDocumentFromString(htmlContent.toString());
-        renderer.layout();
+        // 3. Check relative to the class path
+        potentialPaths.add(Paths.get("template", templateFileName).toString());
+
+        // Try each path
+        for (String path : potentialPaths) {
+            if (Files.exists(Path.of(path))) {
+                System.out.println("Found template at: " + path);
+                return path;
+            }
+        }
+
+        // If not found, return the default path for error reporting
+        System.err.println("Template not found in any of the following locations:");
+        potentialPaths.forEach(path -> System.err.println("- " + path));
+        return potentialPaths.get(0);
     }
 
-    private static String generateUniqueOutputPath(String basePath) {
-        String outputPath = basePath + ".pdf";
+    private static String loadTemplate(String templatePath) {
+        try {
+            return Files.readString(Path.of(templatePath), StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            System.err.println("Error reading template file: " + e.getMessage());
+            return null;
+        }
+    }
+
+    private static String generateUniqueOutputPath(String basePath, String extension) {
+        String outputPath = basePath + "." + extension;
         File file = new File(outputPath);
 
-        // Append a number if the file already exists
         int counter = 1;
         while (file.exists()) {
-            outputPath = basePath + "(" + counter + ").pdf";
+            outputPath = basePath + "(" + counter + ")." + extension;
             file = new File(outputPath);
             counter++;
         }
@@ -225,27 +291,34 @@ public class CSVProcessor {
         return outputPath;
     }
 
-    private static void mergePDFs(List<File> tempFiles, String outputPath) {
-        try (PDDocument finalDocument = new PDDocument()) {
-            for (File tempFile : tempFiles) {
-                if (tempFile.exists() && tempFile.length() > 0) { // Check if the file exists and is not empty
-                    try (PDDocument tempDocument = PDDocument.load(tempFile)) {
-                        for (PDPage page : tempDocument.getDocumentCatalog().getPages()) {
-                            finalDocument.addPage(page);
-                        }
-                    } catch (IOException e) {
-                        System.err.println("Failed to load temporary PDF file: " + tempFile.getAbsolutePath());
-                        e.printStackTrace();
-                    }
-                } else {
-                    if(!tempFile.exists())System.err.println("Missing temporary file: " + tempFile.getAbsolutePath());
-                    if(tempFile.length() == 0) System.err.println("Empty temporary file: " + tempFile.getAbsolutePath());
-                }
+    /**
+     * Opens the generated PDF file in the default PDF viewer.
+     *
+     * @param pdfFilePath Path to the PDF file to open.
+     */
+    private static void openPdfInViewer(String pdfFilePath) {
+        try {
+            File pdfFile = new File(pdfFilePath);
+            if (pdfFile.exists()) {
+                Desktop.getDesktop().open(pdfFile); // Open the PDF file
+            } else {
+                System.err.println("PDF file does not exist: " + pdfFilePath);
             }
-            finalDocument.save(outputPath); // Save the final document
-            System.out.println("Final PDF saved to: " + outputPath);
         } catch (IOException e) {
-            e.printStackTrace();
+            System.err.println("Error opening PDF file in viewer: " + e.getMessage());
+        }
+    }
+
+    private static void openHtmlInBrowser(String htmlFilePath) {
+        try {
+            File htmlFile = new File(htmlFilePath);
+            if (htmlFile.exists()) {
+                Desktop.getDesktop().browse(htmlFile.toURI());
+            } else {
+                System.err.println("HTML file does not exist: " + htmlFilePath);
+            }
+        } catch (IOException e) {
+            System.err.println("Error opening HTML file in browser: " + e.getMessage());
         }
     }
 }

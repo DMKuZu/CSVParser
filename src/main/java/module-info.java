@@ -3,7 +3,11 @@ module com.kuzu.csvparser {
     requires javafx.fxml;
     requires commons.csv;
     requires org.apache.pdfbox;
-    requires flying.saucer.pdf;
+    requires java.desktop;
+    requires openhtmltopdf.pdfbox;
+    requires openhtmltopdf.core;
+    requires java.logging;
+    requires org.jsoup;
 
 
     opens com.kuzu.csvparser to javafx.fxml;
