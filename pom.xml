@@ -17,12 +17,12 @@
     <dependencies>
         <!-- Add JavaFX dependencies -->
         <dependency>
-            <groupId>org.openjfx</groupId>
+            <groupId>lib</groupId>
             <artifactId>javafx-controls</artifactId>
             <version>21</version>
         </dependency>
         <dependency>
-            <groupId>org.openjfx</groupId>
+            <groupId>lib</groupId>
             <artifactId>javafx-fxml</artifactId>
             <version>21</version>
         </dependency>
