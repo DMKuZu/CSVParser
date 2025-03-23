@@ -11,8 +11,8 @@
         <artifactId>maven-compiler-plugin</artifactId>
         <version>3.13.0</version>
         <configuration>
-          <source>9</source>
-          <target>9</target>
+          <source>15</source>
+          <target>15</target>
         </configuration>
       </plugin>
       <plugin>
@@ -23,7 +23,7 @@
           <execution>
             <id>default-cli</id>
             <configuration>
-              <mainClass>com.kuzu.csvparser/com.kuzu.csvparser.Launcher</mainClass>
+              <mainClass>com.kuzu.csvparser.Launcher</mainClass>
               <launcher>app</launcher>
               <jlinkZipName>app</jlinkZipName>
               <jlinkImageName>app</jlinkImageName>

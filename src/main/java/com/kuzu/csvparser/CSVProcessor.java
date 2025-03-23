@@ -124,9 +124,6 @@ public class CSVProcessor {
             System.out.println("PDF file with vouchers generated at: " + pdfOutputPath);
             openPdfInViewer(pdfOutputPath);
         }
-
-        // Open the generated HTML file in the default browser
-        openHtmlInBrowser(htmlOutputPath);
     }
 
     /**
